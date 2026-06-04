@@ -1,14 +1,18 @@
-
 [
     {
         "name": "Hassan",
         "age": 28,
+        "risk_level": "Low",
+        "photo": "faces/Hassan.jpg"
+    },
+    {
+        "name": "amira",
+        "age": "1",
         "risk_level": "Low"
     },
     {
         "name": "Yasmina",
-        "age": 6,
+        "age": "6",
         "risk_level": "Low"
     }
 ]
-

@@ -11,7 +11,6 @@ from datetime import datetime
 # AUDIO
 # -----------------------------
 def play_audio(audio_file):
-
     threading.Thread(
         target=playsound,
         args=(audio_file,),
@@ -23,7 +22,6 @@ def play_audio(audio_file):
 # EVENT LOG
 # -----------------------------
 def log_event(event_text):
-
     with open("event_log.txt", "a") as log_file:
         log_file.write(event_text + "\n")
 
@@ -32,7 +30,6 @@ def log_event(event_text):
 # LOAD YOLO
 # -----------------------------
 model = YOLO("yolov8n.pt")
-
 
 # -----------------------------
 # LOAD FACE RECOGNITION
@@ -43,11 +40,8 @@ recognizer.read("trainer.yml")
 labels = {}
 
 with open("labels.txt", "r") as f:
-
     for line in f:
-
         label_id, name = line.strip().split(",")
-
         labels[int(label_id)] = name
 
 face_cascade = cv2.CascadeClassifier(
@@ -55,19 +49,15 @@ face_cascade = cv2.CascadeClassifier(
     "haarcascade_frontalface_default.xml"
 )
 
-
 # -----------------------------
 # CAMERA
 # -----------------------------
 cap = cv2.VideoCapture(0)
 
-
 # -----------------------------
 # SCREENSHOTS
 # -----------------------------
-if not os.path.exists("screenshots"):
-    os.makedirs("screenshots")
-
+os.makedirs("screenshots", exist_ok=True)
 
 # -----------------------------
 # TIMERS
@@ -78,8 +68,10 @@ last_person_seen = time.time()
 last_unknown_alert = 0
 UNKNOWN_DELAY = 15
 
-VOICE_DELAY = 5
+fall_start_time = None
+FALL_CONFIRM_TIME = 3
 
+VOICE_DELAY = 5
 
 # -----------------------------
 # MAIN LOOP
@@ -122,21 +114,14 @@ while True:
             )
 
             if confidence < 80:
-
                 resident_name = labels[label_id]
-
                 color = (0, 255, 0)
-
             else:
-
                 resident_name = "Unknown Person"
-
                 color = (0, 0, 255)
 
         except:
-
             resident_name = "Unknown Person"
-
             color = (0, 0, 255)
 
         cv2.rectangle(
@@ -171,7 +156,6 @@ while True:
             if class_id == 0:
 
                 person_detected = True
-
                 last_person_seen = time.time()
 
                 x1, y1, x2, y2 = map(
@@ -181,9 +165,7 @@ while True:
 
                 width = x2 - x1
                 height = y2 - y1
-
-                fallen = width > height
-
+                print(f"Width={width} Height={height}")
                 cv2.rectangle(
                     display_frame,
                     (x1, y1),
@@ -192,19 +174,47 @@ while True:
                     2
                 )
 
-                if fallen:
+                # -----------------------------
+                # FALL CONFIRMATION
+                # -----------------------------
+                if width > (height * 1.2):
 
-                    fall_detected = True
+                    if fall_start_time is None:
 
-                    cv2.putText(
-                        display_frame,
-                        "FALL DETECTED!",
-                        (x1, y1 - 35),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.9,
-                        (0, 0, 255),
-                        2
-                    )
+                        fall_start_time = time.time()
+
+                    elif (
+                        time.time() - fall_start_time
+                        >= FALL_CONFIRM_TIME
+                    ):
+
+                        fall_detected = True
+
+                        cv2.putText(
+                            display_frame,
+                            "FALL DETECTED!",
+                            (x1, y1 - 35),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.9,
+                            (0, 0, 255),
+                            2
+                        )
+
+                    else:
+
+                        cv2.putText(
+                            display_frame,
+                            "Verifying Fall...",
+                            (x1, y1 - 35),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.8,
+                            (0, 165, 255),
+                            2
+                        )
+
+                else:
+
+                    fall_start_time = None
 
     # -----------------------------
     # ALERTS
@@ -213,10 +223,13 @@ while True:
 
     if current_time - last_voice_time > VOICE_DELAY:
 
-        # UNKNOWN PERSON ALERT
+        # UNKNOWN PERSON
         if resident_name == "Unknown Person":
 
-            if current_time - last_unknown_alert > UNKNOWN_DELAY:
+            if (
+                current_time - last_unknown_alert
+                > UNKNOWN_DELAY
+            ):
 
                 print("Unknown Person Detected")
 
@@ -243,7 +256,7 @@ while True:
 
                 last_unknown_alert = current_time
 
-        # FALL DETECTED
+        # FALL
         elif fall_detected:
 
             print("Fall detected")
@@ -320,9 +333,8 @@ while True:
         display_frame
     )
 
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord("q"):
         break
-
 
 # -----------------------------
 # CLEANUP
