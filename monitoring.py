@@ -1,3 +1,4 @@
+
 from playsound import playsound
 from ultralytics import YOLO
 import cv2
@@ -17,6 +18,7 @@ def play_audio(audio_file):
         daemon=True
     ).start()
 
+
 # -----------------------------
 # EVENT LOG
 # -----------------------------
@@ -25,10 +27,12 @@ def log_event(event_text):
     with open("event_log.txt", "a") as log_file:
         log_file.write(event_text + "\n")
 
+
 # -----------------------------
 # LOAD YOLO
 # -----------------------------
 model = YOLO("yolov8n.pt")
+
 
 # -----------------------------
 # LOAD FACE RECOGNITION
@@ -51,10 +55,12 @@ face_cascade = cv2.CascadeClassifier(
     "haarcascade_frontalface_default.xml"
 )
 
+
 # -----------------------------
 # CAMERA
 # -----------------------------
 cap = cv2.VideoCapture(0)
+
 
 # -----------------------------
 # SCREENSHOTS
@@ -62,13 +68,18 @@ cap = cv2.VideoCapture(0)
 if not os.path.exists("screenshots"):
     os.makedirs("screenshots")
 
+
 # -----------------------------
 # TIMERS
 # -----------------------------
 last_voice_time = 0
 last_person_seen = time.time()
 
+last_unknown_alert = 0
+UNKNOWN_DELAY = 15
+
 VOICE_DELAY = 5
+
 
 # -----------------------------
 # MAIN LOOP
@@ -82,7 +93,7 @@ while True:
 
     person_detected = False
     fall_detected = False
-    resident_name = "Unknown"
+    resident_name = "Unknown Person"
 
     display_frame = frame.copy()
 
@@ -139,7 +150,7 @@ while True:
         cv2.putText(
             display_frame,
             resident_name,
-            (x, y-10),
+            (x, y - 10),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.8,
             color,
@@ -202,7 +213,38 @@ while True:
 
     if current_time - last_voice_time > VOICE_DELAY:
 
-        if fall_detected:
+        # UNKNOWN PERSON ALERT
+        if resident_name == "Unknown Person":
+
+            if current_time - last_unknown_alert > UNKNOWN_DELAY:
+
+                print("Unknown Person Detected")
+
+                play_audio(
+                    "Sound recordings/Unknown.mp3"
+                )
+
+                timestamp = datetime.now().strftime(
+                    "%Y%m%d_%H%M%S"
+                )
+
+                filename = (
+                    f"screenshots/unknown_{timestamp}.jpg"
+                )
+
+                cv2.imwrite(
+                    filename,
+                    display_frame
+                )
+
+                log_event(
+                    f"{datetime.now()} - UNKNOWN PERSON DETECTED - {filename}"
+                )
+
+                last_unknown_alert = current_time
+
+        # FALL DETECTED
+        elif fall_detected:
 
             print("Fall detected")
 
@@ -227,12 +269,14 @@ while True:
                 f"{datetime.now()} - FALL DETECTED - {filename}"
             )
 
+        # KNOWN RESIDENT
         elif person_detected:
 
             print(
                 f"Resident: {resident_name}"
             )
 
+        # NO PERSON
         else:
 
             if current_time - last_person_seen > 3:
@@ -244,7 +288,7 @@ while True:
         last_voice_time = current_time
 
     # -----------------------------
-    # STATUS
+    # STATUS DISPLAY
     # -----------------------------
     cv2.putText(
         display_frame,
@@ -256,6 +300,18 @@ while True:
         2
     )
 
+    if resident_name == "Unknown Person":
+
+        cv2.putText(
+            display_frame,
+            "SECURITY ALERT",
+            (20, 80),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.8,
+            (0, 0, 255),
+            2
+        )
+
     # -----------------------------
     # SHOW WINDOW
     # -----------------------------
@@ -266,6 +322,7 @@ while True:
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
 
 # -----------------------------
 # CLEANUP
