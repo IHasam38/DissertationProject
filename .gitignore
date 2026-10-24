@@ -1,0 +1,31 @@
+# Python cache and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Sensitive resident and biometric data
+Source_code/residents.json
+Source_code/labels.txt
+Source_code/trainer.yml
+Source_code/screenshots/
+Source_code/Sound recordings/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Generated build output
+build/
+dist/
+*.log
+
+# Academic submission documents
+*.pdf
+
+# Windows and editor files
+Thumbs.db
+Desktop.ini
+.vscode/
